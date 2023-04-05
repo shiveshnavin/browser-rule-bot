@@ -3,7 +3,7 @@ A robust rule based browser automation tool. Rules can be added to the bot with 
 
 ## Installation
 ```
-npm install browser-bot
+npm install browser-rule-bot
 ```
 
 ## Usage
