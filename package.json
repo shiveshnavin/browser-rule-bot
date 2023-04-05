@@ -1,5 +1,6 @@
 {
   "name": "browser-bot",
+  "type": "module",
   "version": "1.0.0",
   "description": "A rule based browser automation tool.",
   "main": "index.js",

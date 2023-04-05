@@ -4,7 +4,7 @@ import showMouseJs from './showMouse.js';
 class BrowserBot {
 
     launchNewBrowser;
-    debug = 1;
+    debug = 0;
     disconnectCount = 0
     profileName
     browser
