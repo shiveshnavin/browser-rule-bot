@@ -1,0 +1,480 @@
+import { connect, launch } from 'puppeteer';
+import { randomBytes } from 'crypto';
+import showMouseJs from './showMouse.js';
+class BrowserBot {
+
+    launchNewBrowser;
+    debug = 1;
+    disconnectCount = 0
+    profileName
+    browser
+    page
+
+    logger
+    rules = []// [{partialUrl, elementPath, action, matcherType}]
+    reqResCallbacks = {}
+    globalReqResCallbacks = {}
+    keepSingleTabInBrowser = true
+    defaultUrl
+    showMouse = false
+
+    static PERIODIC_INTERVAL = 5000
+    constructor(launchNewBrowser, profileName, defaultUrl) {
+        this.launchNewBrowser = launchNewBrowser
+        this.profileName = profileName
+        this.defaultUrl = defaultUrl
+    }
+
+    log(...params) {
+        if (this.logger)
+            this.logger(params)
+        if (this.debug)
+            console.log(params.join(" "))
+    }
+
+    async init() {
+        try {
+            if (this.browser && this.browser.isConnected()) {
+                console.log("alredy initialized")
+                let that = this;
+                if (that.defaultUrl && that.browser) {
+                    that.gotoPage(that.defaultUrl)
+                }
+                return true
+            }
+            let browser;
+            if (!this.launchNewBrowser)
+                browser = await connect({
+                    browserURL: 'http://127.0.0.1:21222/devtools/browser/' + this.profileName,
+                });
+            else
+                browser = await launch()
+            this.browser = browser;
+
+            let that = this
+            browser.on('disconnected', async () => {
+                // if (that.debug)
+                that.disconnectCount++
+                while (that.disconnectCount < 10) {
+                    await new Promise((resolve) => {
+                        setTimeout(resolve, that.disconnectCount * 2000)
+                    })
+                    console.log('Browser disconnected. Trying to reconnect...' + that.disconnectCount);
+                    await that.init()
+                    if (that.defaultUrl && that.browser) {
+                        that.gotoPage(that.defaultUrl)
+                    }
+                }
+            });
+            this.evaluatePeriodicRules()
+            return true;
+        } catch (e) {
+            this.log(e)
+            return false
+        }
+    }
+
+    async getCurrentPage(url) {
+        const pages = await this.browser.pages();
+        let visiblePage;
+        for (const page of pages) {
+            const visibilityState = await page.evaluate(() => document.visibilityState);
+            if (visibilityState === 'visible' || (url && page.url().indexOf(url) > -1)) {
+                visiblePage = page;
+                break;
+            }
+        }
+        if (!visiblePage) {
+            visiblePage = pages[0]
+        }
+        return visiblePage
+    }
+
+    async gotoPage(url, pageToUse) {
+        if (!this.browser) {
+            console.log("Fatal error while gotoPage. Browser Disconnected")
+            this.init()
+            return
+        }
+        const page = pageToUse || (await this.browser.newPage());
+
+        this.attachRuleListenerToPage(page)
+        await page.goto(url);
+        await this._onNewPageLoading(page)
+
+    }
+
+    async _onNewPageLoading(page) {
+        this.page = page
+        if (this.keepSingleTabInBrowser)
+            closeTabsExceptCurrent(this.browser, page)
+        // try {
+        //     await page.waitForNavigation();
+        // } catch (e) {
+        //     console.log("Tolerable Timeout Error")
+        // }
+
+        try {
+            if (this.showMouse) {
+                page.evaluate(showMouseJs)
+                    .then(() => {
+                        this.log("Mouse visalization connected")
+                    })
+            }
+        } catch (e) {
+
+        }
+
+
+        await page.setRequestInterception(true);
+        let that = this
+        page.on('request', async (request) => {
+            let headers = request.headers()
+            let method = request.method()
+            let url = request.url()
+            let body = request.postData()
+            if (request.isNavigationRequest() && request.resourceType() === 'document') {
+                if (that.debug)
+                    that.log('New page loading:' + request.url());
+                try {
+
+                    page.on('targetcreated', async (target) => {
+                        const newPage = await target.page();
+                        that.log('New page opened:', newPage.url());
+                        that.attachRuleListenerToPage(newPage)
+                        that._onNewPageLoading(newPage)
+                    });
+
+                } catch (e) {
+                    console.warn("Fatal: Waiting for new page @ ", request.url(), " failed. " + e.message)
+                }
+            }
+            else {
+
+                let that = this
+
+                let reqData = {
+                    headers: request.headers(),
+                    method: request.method(),
+                    url: request.url(),
+                    body: request.postData(),
+                    reqId: request.reqId
+                }
+                Object.keys(that.globalReqResCallbacks).forEach(iurl => {
+                    let cb = that.globalReqResCallbacks[iurl]
+                    if (url.indexOf(iurl) > -1)
+                        cb(reqData, undefined)
+                })
+                that.reqResCallbacks[page]?.forEach(cb => {
+                    cb(reqData, undefined)
+                })
+            }
+
+            try {
+                if (!request.isInterceptResolutionHandled()) {
+                    request.continue();
+                }
+            } catch (e) {
+                console.log(e.message)
+            }
+        });
+
+        page.on('error', (err) => {
+            console.error('Page error:', err);
+        });
+
+        page.on('close', (request) => {
+            this.reqResCallbacks[page] = undefined
+        });
+
+        page.on('response', async (response) => {
+            let body;
+            const url = response.url()
+            const headers = response.headers()
+            const status = response.status()
+            const timing = response.timing()?.requestTime
+            const request = response.request()
+            const reqId = request._requestId
+
+
+            let reqData = {
+                headers: request.headers(),
+                method: request.method(),
+                url: request.url(),
+                body: request.postData(),
+                reqId: reqId
+            }
+
+            try {
+                body = await response.text();
+            } catch (e) {
+                this.log("Error loading text body ", url, e.message)
+                body = undefined
+            }
+            let responseData = {
+                headers,
+                status,
+                timing,
+                method: request.method(),
+                url,
+                body,
+                reqId
+            }
+            Object.keys(this.globalReqResCallbacks).forEach(iurl => {
+                let cb = this.globalReqResCallbacks[iurl]
+                if (url.indexOf(iurl) > -1)
+                    cb(reqData, responseData)
+            })
+            this.reqResCallbacks[page]?.forEach(cb => {
+                cb(reqData, responseData)
+            })
+        });
+    }
+
+    async closeBrowser() {
+        await browser.close();
+    }
+
+    attachRuleListenerToPage(page) {
+        let that = this;
+        page.on('load', (param) => {
+            if (that.debug) {
+                that.log('Page loaded ', page.url())
+            }
+            that.evauateAllRules(page)
+        })
+    }
+
+    periodicRuleTimer
+    evaluatePeriodicRules() {
+        let that = this
+        if (this.periodicRuleTimer)
+            clearInterval(this.periodicRuleTimer)
+        this.periodicRuleTimer = setInterval(() => {
+
+            let periodicRules = that.rules.filter(rule => {
+                return rule.globalEvalPeriodMs != undefined &&
+                    rule.globalEvalPeriodMs > BrowserBot.PERIODIC_INTERVAL
+            })
+
+            if (that.page) {
+                this.log(`Evaluating periodic ${periodicRules.length} rules @ page `, that.page?.url())
+                periodicRules.forEach(rule => {
+                    if (rule.nextEvalAfter == undefined)
+                        rule.nextEvalAfter = Date.now()
+
+                    if (rule.nextEvalAfter <= Date.now()) {
+                        rule.nextEvalAfter = Date.now() + rule.globalEvalPeriodMs
+                        that.evaluateSingleRule(that.page, rule)
+                    }
+                })
+            }
+        }, BrowserBot.PERIODIC_INTERVAL)
+    }
+
+    evauateAllRules(page) {
+        {
+            this.log('Evaluating rules for page', page.url())
+        }
+        this.rules.forEach(rule => {
+            this.evaluateSingleRule(page, rule)
+        })
+    }
+
+    async evaluateSingleRule(page, { partialUrl, elementPath, action, onActionDone, globalEvalPeriodMs, matcherType = 'xpath' }) {
+        if (!onActionDone) {
+            onActionDone = () => { }
+        }
+        let url = page.url()
+        if (partialUrl?.trim() == '*' || url.indexOf(partialUrl) > -1) {
+
+            this.log(`page ${url} matches ${partialUrl}`)
+            try {
+
+                if (elementPath == '*') {
+                    this.log(`wildcard element match`)
+
+                    try {
+                        await action(page, page)
+                        onActionDone(true)
+                    } catch (e) {
+                        this.log('Error evaluating action', elementPath)
+                        if (this.debug) {
+                            this.log(e)
+                        }
+                        if (e.message.indexOf("Session closed.") > -1) {
+                            await this.init()
+                        }
+                        onActionDone(false, 'ACTION_FAILED')
+                    }
+                    return
+                }
+                let match
+                if (matcherType == 'selector') {
+                    match = await page.$(elementPath);
+                }
+                else if (matcherType == 'xpath') {
+                    match = await page.$x(elementPath);
+                }
+                else if (matcherType == 'iframe') {
+                    const iframes = await page.$$('iframe');
+                    for (const iframe of iframes) {
+                        const frameTitle = await iframe.evaluate(frame => frame.title);
+                        if (frameTitle.indexOf(elementPath) > -1) {
+                            match = [iframe]
+                            break
+                        }
+                    }
+                }
+                if (match && match[0]) {
+                    match = match[0]
+
+                    this.log(`matche found for ${elementPath}`)
+                    try {
+                        await action(match, page)
+                        onActionDone(true)
+                    } catch (e) {
+                        this.log('Error evaluating action', elementPath)
+                        if (this.debug) {
+                            this.log(e)
+                        }
+                        if (e.message.indexOf("Session closed.") > -1) {
+                            await this.init()
+                        }
+                        onActionDone(false, 'ACTION_FAILED')
+                    }
+
+                }
+                else {
+                    this.log(`NO MATCH FOR ${elementPath}`)
+                    onActionDone(false, 'NO_MATCH')
+                }
+            } catch (e) {
+                this.log('Error evaluating xpath', elementPath, e)
+                onActionDone(false, 'NO_MATCH')
+            }
+
+
+        }
+    }
+
+    attachOnRequestResponseListener(page, callback) {
+        if (!this.reqResCallbacks[page])
+            this.reqResCallbacks[page] = []
+        this.reqResCallbacks[page].push(callback)
+    }
+
+    attachGlobalOnRequestResponseListener(url, callback) {
+        this.globalReqResCallbacks[url] = (callback)
+    }
+
+    addRule({ partialUrl, elementPath, action, onActionDone, matcherType = 'xpath', globalEvalPeriodMs }) {
+        if (globalEvalPeriodMs && globalEvalPeriodMs < 1000) {
+            throw new Error("globalEvalPeriodMs must be at least 1000")
+        }
+        const index = this.rules.findIndex(
+            obj =>
+                obj.partialUrl === partialUrl &&
+                obj.elementPath === elementPath
+        );
+        if (index !== -1) {
+            this.rules.splice(index, 1);
+        }
+        this.rules.push({
+            partialUrl, elementPath, action, onActionDone, globalEvalPeriodMs, matcherType
+        })
+    }
+
+
+    async evaluateApiStream(page, url, method, headers, body, extraFetchParams) {
+        let resp = await page.evaluate(this._doFetch, url, method, headers, body, extraFetchParams, true)
+        return resp
+    }
+
+    async evaluateApi(page, url, method, headers, body, extraFetchParams) {
+        let resp = await page.evaluate(this._doFetch, url, method, headers, body, extraFetchParams, false)
+        return resp
+    }
+
+
+    async _doFetch(url, method, headers, body, extraFetchParams = {}, doStream) {
+        if (typeof body != 'string')
+            body = JSON.stringify(body)
+        let fresp;
+        let response = fetch(url, Object.assign({
+            "headers": headers,
+            "body": method.toLowerCase() == 'get' ? undefined : body,
+            "method": method,
+            "referrerPolicy": "same-origin",
+            "mode": "cors",
+            "credentials": "include",
+            stream: doStream
+        }, extraFetchParams))
+
+
+        let status
+        let resheaders
+        if (!doStream) {
+            let responseBody = await response
+            status = responseBody.status
+            resheaders = responseBody.headers
+            fresp = await responseBody.text()
+        }
+        else {
+            let responseBody = await response
+            status = responseBody.status
+            resheaders = responseBody.headers
+            const reader = responseBody.body.getReader()
+            let responseChunks = []
+            while (true) {
+                const { done, value } = await reader.read();
+                const decoder = new TextDecoder('utf-8');
+                const str = decoder.decode(value);
+                responseChunks.push(str)
+
+                if (done) {
+                    fresp = responseChunks
+                    break;
+                }
+            }
+
+        }
+        return {
+            data: fresp,
+            status: status,
+            headers: resheaders
+        }
+    }
+
+    static async clearInputField(inputField) {
+        await inputField.click({ clickCount: 3 });
+        await inputField.press('Backspace');
+        await inputField.press('End');
+
+    }
+
+}
+
+function generateRandomString(length) {
+    const buffer = randomBytes(Math.ceil(length / 2));
+    const hexString = buffer.toString('hex');
+    return hexString.slice(0, length);
+}
+
+
+async function closeTabsExceptCurrent(browser, currentPage) {
+    const pages = await browser.pages();
+
+    for (let i = 0; i < pages.length; i++) {
+        const page = pages[i];
+        if (page !== currentPage) {
+            try {
+                await page.close();
+            } catch (E) {
+
+            }
+        }
+    }
+}
+
+export default BrowserBot

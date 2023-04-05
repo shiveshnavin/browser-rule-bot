@@ -1,0 +1,28 @@
+{
+  "name": "browser-bot",
+  "version": "1.0.0",
+  "description": "A rule based browser automation tool.",
+  "main": "index.js",
+  "scripts": {
+    "test": "node test.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/shiveshnavin/browser-bot.git"
+  },
+  "keywords": [
+    "browser-bot",
+    "automation",
+    "pupeteer",
+    "bot-rules"
+  ],
+  "author": "Shivesh Navin",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/shiveshnavin/browser-bot/issues"
+  },
+  "homepage": "https://github.com/shiveshnavin/browser-bot#readme",
+  "dependencies": {
+    "puppeteer": "^19.8.3"
+  }
+}
