@@ -93,19 +93,15 @@ The rules added via `addRule()` are evaluated in parallel, In case you want to s
 ```
 
 ### Evaluating periodic rules
-
+If you want to evaluate a rule periodically, for example to check if there is a session expired popup, this will be quite helpful.
 ```js
-
     browserBot.addRule({
         globalEvalPeriodMs: 5100,
         matcherType: 'iframe',
-        partialUrl: "chat.openai.com",
-        elementPath: 'Widget',
-        action: async function (iframeWithCaptha, page) {
+        partialUrl: "https://iframetester.com/?url=https://wikipedia.org",
+        elementPath: 'Wikipedia',
+        action: async function (iframe, page) {
            
-        },
-        onActionDone: async function (loaded, err) {
-
         }
     })
 ```
