@@ -1,4 +1,4 @@
-# Browser Bot
+# Browser Rule Bot
 A robust rule based browser automation tool. Rules can be added to the bot with URL based filters. These rules will be avaluated and correspoding actions will be called when the filter matches.
 
 ## Installation
