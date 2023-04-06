@@ -17,12 +17,14 @@ class BrowserBot {
     keepSingleTabInBrowser = true
     defaultUrl
     showMouse = false
+    browserURL
 
     static PERIODIC_INTERVAL = 5000
-    constructor(launchNewBrowser, profileName, defaultUrl) {
+    constructor(launchNewBrowser, profileName, defaultUrl, browserURL) {
         this.launchNewBrowser = launchNewBrowser
         this.profileName = profileName
         this.defaultUrl = defaultUrl
+        this.browserURL = browserURL
     }
 
     log(...params) {
@@ -43,9 +45,11 @@ class BrowserBot {
                 return true
             }
             let browser;
+            if (!this.browserURL)
+                this.browserURL = 'http://127.0.0.1:21222/devtools/browser'
             if (!this.launchNewBrowser)
                 browser = await connect({
-                    browserURL: 'http://127.0.0.1:21222/devtools/browser/' + this.profileName,
+                    browserURL: this.browserURL + '/' + this.profileName,
                 });
             else
                 browser = await launch()

@@ -22,7 +22,8 @@ import BrowserBot from 'browserbot';
 let profile = 'Detault' //'Default' if you want to use the default local profile or the name of the profile to use
 let defaultUrl = "https://en.wikipedia.org/wiki/Main_Page" //The default url to open when the bot is started
 let launchNewBrowser = false // true if you want to launch a new browser, false if you want to connect to an already open browser
-const browserBot = new BrowserBot(profile, defaultUrl,launchNewBrowser);
+let browserUrl = "http://127.0.0.1:21222/devtools/browser/" // mandatory if launchNewBrowser = false
+const browserBot = new BrowserBot(profile, defaultUrl,launchNewBrowser,browserUrl);
 browserBot.init().then(()=>{
     console.log('Browserbot initialized')
     browserBot.gotoPage(defaultUrl)
