@@ -34,6 +34,19 @@ class BrowserBot {
             console.log(params.join(" "))
     }
 
+    async stopBrowser() {
+        this.disconnectCount = 100
+        try {
+            (await this.getCurrentPage()).close()
+        } catch (e) { console.log('Warning: closing current page', e.message) }
+        try {
+            await this.browser.disconnect()
+        } catch (e) { console.log('Warning: disconnecting from browser', e.message) }
+        try {
+            clearInterval(this.periodicRuleTimer)
+        } catch (e) { console.log('Warning: clearing scheduled rules', e.message) }
+    }
+
     async init() {
         try {
             if (this.browser && this.browser.isConnected()) {
