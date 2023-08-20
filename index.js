@@ -298,9 +298,21 @@ class BrowserBot {
         })
     }
 
-    async evaluateSingleRule(page, { partialUrl, elementPath, action, onActionDone, globalEvalPeriodMs, matcherType = 'xpath' }) {
+    async evaluateSingleRule(page, curRule) {
         if (!onActionDone) {
             onActionDone = () => { }
+        }
+        let { partialUrl, elementPath, action, onActionDone, globalEvalPeriodMs, matcherType = 'xpath' } = curRule
+        let removeRule = () => {
+            var indexToRemove = this.rules.indexOf(curRule);
+            if (indexToRemove !== -1) {
+                this.rules.splice(indexToRemove, 1);
+            }
+            indexToRemove = this.periodicRules.indexOf(curRule);
+            if (indexToRemove !== -1) {
+                this.periodicRules.splice(indexToRemove, 1);
+            }
+
         }
         let url = page.url()
         if (partialUrl?.trim() == '*' || url.indexOf(partialUrl) > -1) {
@@ -312,7 +324,7 @@ class BrowserBot {
                     this.log(`wildcard element match`)
 
                     try {
-                        await action(page, page)
+                        await action(page, page, removeRule)
                         onActionDone(true)
                     } catch (e) {
                         this.log('Error evaluating action', elementPath)
@@ -348,7 +360,7 @@ class BrowserBot {
 
                     this.log(`matche found for ${elementPath}`)
                     try {
-                        await action(match, page)
+                        await action(match, page, removeRule)
                         onActionDone(true)
                     } catch (e) {
                         this.log('Error evaluating action', elementPath)
