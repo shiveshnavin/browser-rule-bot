@@ -305,13 +305,17 @@ class BrowserBot {
             onActionDone = () => { }
         }
         let removeRule = () => {
-            var indexToRemove = this.rules.indexOf(curRule);
-            if (indexToRemove !== -1) {
-                this.rules.splice(indexToRemove, 1);
+            if (this.rules && typeof this.rules == 'object') {
+                var indexToRemove = this.rules.indexOf(curRule);
+                if (indexToRemove !== -1) {
+                    this.rules.splice(indexToRemove, 1);
+                }
             }
-            indexToRemove = this.periodicRules.indexOf(curRule);
-            if (indexToRemove !== -1) {
-                this.periodicRules.splice(indexToRemove, 1);
+            if (this.periodicRules && typeof this.periodicRules == 'object') {
+                indexToRemove = this.periodicRules.indexOf(curRule);
+                if (indexToRemove !== -1) {
+                    this.periodicRules.splice(indexToRemove, 1);
+                }
             }
 
         }
