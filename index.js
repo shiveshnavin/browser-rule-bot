@@ -116,8 +116,8 @@ class BrowserBot {
         const page = pageToUse || (await this.browser.newPage());
 
         this.attachRuleListenerToPage(page)
-        await page.goto(url);
         await this._onNewPageLoading(page)
+        await page.goto(url);
 
     }
 
