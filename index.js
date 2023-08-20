@@ -299,10 +299,11 @@ class BrowserBot {
     }
 
     async evaluateSingleRule(page, curRule) {
+        let { partialUrl, elementPath, action, onActionDone, globalEvalPeriodMs, matcherType = 'xpath' } = curRule
+
         if (!onActionDone) {
             onActionDone = () => { }
         }
-        let { partialUrl, elementPath, action, onActionDone, globalEvalPeriodMs, matcherType = 'xpath' } = curRule
         let removeRule = () => {
             var indexToRemove = this.rules.indexOf(curRule);
             if (indexToRemove !== -1) {
