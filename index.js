@@ -180,10 +180,10 @@ class BrowserBot {
                 Object.keys(that.globalReqResCallbacks).forEach(iurl => {
                     let cb = that.globalReqResCallbacks[iurl]
                     if (url.indexOf(iurl) > -1)
-                        cb(reqData, undefined)
+                        cb(reqData, undefined, request)
                 })
                 that.reqResCallbacks[page]?.forEach(cb => {
-                    cb(reqData, undefined)
+                    cb(reqData, undefined, request)
                 })
             }
 
@@ -240,10 +240,10 @@ class BrowserBot {
             Object.keys(this.globalReqResCallbacks).forEach(iurl => {
                 let cb = this.globalReqResCallbacks[iurl]
                 if (url.indexOf(iurl) > -1)
-                    cb(reqData, responseData)
+                    cb(reqData, responseData, request, response)
             })
             this.reqResCallbacks[page]?.forEach(cb => {
-                cb(reqData, responseData)
+                cb(reqData, responseData, request, response)
             })
         });
     }
