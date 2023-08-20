@@ -150,6 +150,7 @@ class BrowserBot {
             let method = request.method()
             let url = request.url()
             let body = request.postData()
+            let requestOverrides = {}
             if (request.isNavigationRequest() && request.resourceType() === 'document') {
                 if (that.debug)
                     that.log('New page loading:' + request.url());
@@ -180,7 +181,8 @@ class BrowserBot {
                 Object.keys(that.globalReqResCallbacks).forEach(iurl => {
                     let cb = that.globalReqResCallbacks[iurl]
                     if (url.indexOf(iurl) > -1)
-                        cb(reqData, undefined, request)
+                        requestOverrides = cb(reqData, undefined, request) || {}
+
                 })
                 that.reqResCallbacks[page]?.forEach(cb => {
                     cb(reqData, undefined, request)
@@ -189,7 +191,7 @@ class BrowserBot {
 
             try {
                 if (!request.isInterceptResolutionHandled()) {
-                    request.continue();
+                    request.continue(requestOverrides);
                 }
             } catch (e) {
                 console.log(e.message)
