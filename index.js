@@ -100,7 +100,9 @@ class BrowserBot {
                     browserURL: this.browserURL + '/' + this.profileName, defaultViewport: null
                 });
             else
-                browser = await launch()
+                browser = await launch({
+                    defaultViewport: null
+                })
             this.browser = browser;
 
             let that = this
