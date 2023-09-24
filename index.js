@@ -335,7 +335,7 @@ class BrowserBot {
         })
     }
 
-    async evaluateSingleRule(page, curRule) {
+    async evaluateSingleRule(page, curRule, retryCount) {
         let { partialUrl, elementPath, action, onActionDone, globalEvalPeriodMs, matcherType = 'xpath' } = curRule
 
         if (!onActionDone) {
@@ -424,8 +424,14 @@ class BrowserBot {
                     onActionDone(false, new Error('NO_MATCH'))
                 }
             } catch (e) {
-                this.log('Error evaluating xpath', elementPath, e)
-                onActionDone(false, new Error('NO_MATCH'))
+                if (e.message.indexOf("Session closed") > -1 && retryCount > 0) {
+                    this.log('Trying to recover from session closed error')
+                    this.evaluateSingleRule(page, curRule, (retryCount || 1) - 1)
+                } else {
+                    this.log('Error evaluating xpath', elementPath, e)
+                    onActionDone(false, new Error('NO_MATCH'))
+                }
+
             }
 
 
