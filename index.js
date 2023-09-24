@@ -424,7 +424,7 @@ class BrowserBot {
                     onActionDone(false, new Error('NO_MATCH'))
                 }
             } catch (e) {
-                if (e.message.indexOf("Session closed") > -1 && retryCount > 0) {
+                if (e.message.indexOf("closed") > -1 && retryCount > 0) {
                     this.log('Trying to recover from session closed error')
                     this.evaluateSingleRule(page, curRule, (retryCount || 1) - 1)
                 } else {
