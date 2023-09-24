@@ -1,7 +1,7 @@
 {
   "name": "browser-rule-bot",
   "type": "module",
-  "version": "1.2.3",
+  "version": "1.2.4",
   "description": "A rule based reactive browser automation tool.",
   "main": "index.js",
   "scripts": {
