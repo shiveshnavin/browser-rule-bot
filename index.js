@@ -97,7 +97,7 @@ class BrowserBot {
                 this.browserURL = 'http://127.0.0.1:21222/devtools/browser'
             if (!this.launchNewBrowser)
                 browser = await connect({
-                    browserURL: this.browserURL + '/' + this.profileName,
+                    browserURL: this.browserURL + '/' + this.profileName, defaultViewport: null
                 });
             else
                 browser = await launch()
