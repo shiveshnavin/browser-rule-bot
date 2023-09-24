@@ -424,15 +424,15 @@ class BrowserBot {
                     onActionDone(false, new Error('NO_MATCH'))
                 }
             } catch (e) {
-                if (e.message.indexOf("closed") > -1 && (retryCount || 1) > 0) {
+                retryCount = retryCount == undefined ? 1 : retryCount
+                if (e.message.indexOf("closed") > -1 && retryCount > 0) {
                     this.log('Trying to recover from session closed error')
                     this.page = await this.getCurrentPage()
-                    this.evaluateSingleRule(page, curRule, (retryCount || 1) - 1)
+                    this.evaluateSingleRule(page, curRule, retryCount - 1)
                 } else {
                     this.log('Error evaluating xpath', elementPath, e)
                     onActionDone(false, new Error('NO_MATCH'))
                 }
-
             }
 
 
