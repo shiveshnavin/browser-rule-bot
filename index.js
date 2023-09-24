@@ -34,6 +34,21 @@ class BrowserBot {
             console.log(params.join(" "))
     }
 
+    clearAllRules() {
+        rules = []
+    }
+
+    clearAllCallbacks(skipRules,) {
+        globalReqResCallbacks = []
+        reqResCallbacks = []
+    }
+
+    async closeCurrentPage(page) {
+        try {
+            (page || await this.getCurrentPage()).close()
+        } catch (e) { console.log('Non-Fatal: while closing current page.', e.message) }
+    }
+
     async stopBrowser() {
         this.disconnectCount = 100
         try {
@@ -341,7 +356,7 @@ class BrowserBot {
                         if (e.message.indexOf("Session closed.") > -1) {
                             await this.init()
                         }
-                        onActionDone(false, 'ACTION_FAILED')
+                        onActionDone(false, e)
                     }
                     return
                 }
@@ -351,6 +366,9 @@ class BrowserBot {
                 }
                 else if (matcherType == 'xpath') {
                     match = await page.$x(elementPath);
+                }
+                else if (matcherType == '$$') {
+                    match = await page.$$(elementPath);
                 }
                 else if (matcherType == 'iframe') {
                     const iframes = await page.$$('iframe');
@@ -377,17 +395,17 @@ class BrowserBot {
                         if (e.message.indexOf("Session closed.") > -1) {
                             await this.init()
                         }
-                        onActionDone(false, 'ACTION_FAILED')
+                        onActionDone(false, e)
                     }
 
                 }
                 else {
                     this.log(`NO MATCH FOR ${elementPath}`)
-                    onActionDone(false, 'NO_MATCH')
+                    onActionDone(false, new Error('NO_MATCH'))
                 }
             } catch (e) {
                 this.log('Error evaluating xpath', elementPath, e)
-                onActionDone(false, 'NO_MATCH')
+                onActionDone(false, new Error('NO_MATCH'))
             }
 
 
@@ -404,6 +422,9 @@ class BrowserBot {
         this.globalReqResCallbacks[url] = (callback)
     }
 
+    /*
+     * matcherType = xpath | selector | iframe | $$
+     */
     addRule({ partialUrl, elementPath, action, onActionDone, matcherType = 'xpath', globalEvalPeriodMs }) {
         if (globalEvalPeriodMs && globalEvalPeriodMs < 1000) {
             throw new Error("globalEvalPeriodMs must be at least 1000")
