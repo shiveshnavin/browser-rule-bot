@@ -43,9 +43,29 @@ class BrowserBot {
         reqResCallbacks = []
     }
 
-    async closeCurrentPage(page) {
+    async closeCurrentPage(page, safe) {
         try {
-            (page || await this.getCurrentPage()).close()
+            if (!safe)
+                (page || await this.getCurrentPage()).close()
+            else {
+                let bot = this
+                const numberOfOpenPages = (await bot.browser.pages()).length
+                if (numberOfOpenPages <= 1) {
+                    return
+                }
+                return await new Promise((resolve) => {
+                    if (page) {
+                        page.close().catch(e => { }).finally(resolve)
+                    } else {
+                        bot.getCurrentPage().then(p => {
+                            p.close().finally(resolve)
+                        }).catch(e => {
+                        }).finally(resolve)
+                    }
+                })
+
+            }
+
         } catch (e) { console.log('Non-Fatal: while closing current page.', e.message) }
     }
 
