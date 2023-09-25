@@ -35,12 +35,12 @@ class BrowserBot {
     }
 
     clearAllRules() {
-        rules = []
+        this.rules = []
     }
 
     clearAllCallbacks(skipRules,) {
-        globalReqResCallbacks = []
-        reqResCallbacks = []
+        this.globalReqResCallbacks = []
+        this.reqResCallbacks = []
     }
 
     async closeCurrentPage(page, safe) {
