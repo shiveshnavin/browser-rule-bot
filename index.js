@@ -18,6 +18,7 @@ class BrowserBot {
   showMouse = false;
   browserURL;
   botName;
+  MAX_DISCONNECT_COUNT = 5;
 
   static PERIODIC_INTERVAL = 5000;
   constructor(
@@ -36,6 +37,11 @@ class BrowserBot {
 
   disableAutoDisconnect() {
     this.disconnectCount = 100;
+    return this;
+  }
+
+  resetDisconnectCount() {
+    this.disconnectCount = 0;
     return this;
   }
 
@@ -139,7 +145,7 @@ class BrowserBot {
       browser.on("disconnected", async () => {
         // if (that.debug)
         that.disconnectCount++;
-        while (that.disconnectCount < 10) {
+        while (that.disconnectCount < (this.MAX_DISCONNECT_COUNT || 10)) {
           await new Promise((resolve) => {
             setTimeout(resolve, that.disconnectCount * 2000);
           });
