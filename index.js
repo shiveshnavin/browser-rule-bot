@@ -203,6 +203,7 @@ class BrowserBot {
     this.attachRuleListenerToPage(page);
     await this._onNewPageLoading(page);
     await page.goto(url);
+    return page;
   }
 
   async _onNewPageLoading(page) {
