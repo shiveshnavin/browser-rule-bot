@@ -15,6 +15,7 @@ class BrowserBot {
   globalReqResCallbacks = {};
   keepSingleTabInBrowser = true;
   defaultUrl;
+  autoLaunchDefaultUrl = true;
   showMouse = false;
   browserURL;
   botName;
@@ -117,16 +118,17 @@ class BrowserBot {
     }
   }
 
-  async init() {
-    try {
-      if (this.browser && this.browser.isConnected()) {
+  async reconnect(force = false) {
+
+    if (this.browser && this.browser.isConnected() && !force) {
         console.log(this.botName, "alredy initialized");
         let that = this;
-        if (that.defaultUrl && that.browser) {
+        if (that.defaultUrl && that.browser && that.autoLaunchDefaultUrl) {
           that.gotoPage(that.defaultUrl);
         }
         return true;
       }
+
       let browser;
       if (!this.browserURL)
         this.browserURL = "http://127.0.0.1:21222/devtools/browser";
@@ -140,8 +142,14 @@ class BrowserBot {
           defaultViewport: null,
         });
       this.browser = browser;
+    return browser
+  }
+
+  async init() {
+    try {
 
       let that = this;
+      let browser = this.reconnect();
       browser.on("disconnected", async () => {
         // if (that.debug)
         that.disconnectCount++;
@@ -155,7 +163,7 @@ class BrowserBot {
               that.disconnectCount
           );
           await that.init();
-          if (that.defaultUrl && that.browser) {
+          if (that.defaultUrl && that.browser && that.autoLaunchDefaultUrl) {
             that.gotoPage(that.defaultUrl);
           }
         }
