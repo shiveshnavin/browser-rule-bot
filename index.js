@@ -149,7 +149,7 @@ class BrowserBot {
     try {
 
       let that = this;
-      let browser = this.reconnect();
+      let browser = await this.reconnect();
       browser.on("disconnected", async () => {
         // if (that.debug)
         that.disconnectCount++;
