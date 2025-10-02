@@ -133,7 +133,7 @@ class BrowserBot {
     if (!this.browserURL)
       this.browserURL = "http://127.0.0.1:21222/devtools/browser";
 
-
+    console.log(`[${this.botName}]: Reconnecting... , launchNewBrowser: ${this.launchNewBrowser}`);
     let watchdog = new Promise((resolve, reject) => {
       setTimeout(() => {
         console.log(`[${this.botName}]:watchdog: Browser reconnection timed out after 5sec, launchNewBrowser: ${this.launchNewBrowser}`);
