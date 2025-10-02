@@ -118,6 +118,7 @@ class BrowserBot {
     }
   }
 
+
   async reconnect(force = false) {
 
     if (this.browser && this.browser.isConnected() && !force) {
@@ -136,11 +137,9 @@ class BrowserBot {
     console.log(`[${this.botName}]: Reconnecting... , launchNewBrowser: ${this.launchNewBrowser}`);
     let watchdog = new Promise((resolve, reject) => {
       setTimeout(() => {
-        console.log(`[${this.botName}]:watchdog: Browser reconnection timed out after 5sec, launchNewBrowser: ${this.launchNewBrowser}. target=${this.browserURL}`);
         reject(new Error(`[${this.botName}]:watchdog: Browser reconnection timed out after 5sec, launchNewBrowser: ${this.launchNewBrowser} target=${this.browserURL}`));
-      }, 5000);
+      }, 15000);
     });
-
 
     const connector = async () => {
       if (!this.launchNewBrowser)
@@ -153,11 +152,15 @@ class BrowserBot {
           defaultViewport: null,
         });
     }
-    await Promise.race([connector(), watchdog]);
+    await Promise.race([connector(), watchdog]).catch(e => {
+      console.log(e.message);
+    });
+    console.log(`[${this.botName}]: ${browser != undefined ? 'Connected' : 'Not Connected'} to target target=${this.browserURL} `);
 
     this.browser = browser;
     return browser
   }
+
 
   async init() {
     try {
