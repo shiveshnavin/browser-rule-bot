@@ -73,7 +73,7 @@ class BrowserBot {
           if (page) {
             page
               .close()
-              .catch((e) => {})
+              .catch((e) => { })
               .finally(resolve);
           } else {
             bot
@@ -81,7 +81,7 @@ class BrowserBot {
               .then((p) => {
                 p.close().finally(resolve);
               })
-              .catch((e) => {})
+              .catch((e) => { })
               .finally(resolve);
           }
         });
@@ -121,17 +121,27 @@ class BrowserBot {
   async reconnect(force = false) {
 
     if (this.browser && this.browser.isConnected() && !force) {
-        console.log(this.botName, "alredy initialized");
-        let that = this;
-        if (that.defaultUrl && that.browser && that.autoLaunchDefaultUrl) {
-          that.gotoPage(that.defaultUrl);
-        }
-        return true;
+      console.log(this.botName, "alredy initialized");
+      let that = this;
+      if (that.defaultUrl && that.browser && that.autoLaunchDefaultUrl) {
+        that.gotoPage(that.defaultUrl);
       }
+      return true;
+    }
 
-      let browser;
-      if (!this.browserURL)
-        this.browserURL = "http://127.0.0.1:21222/devtools/browser";
+    let browser;
+    if (!this.browserURL)
+      this.browserURL = "http://127.0.0.1:21222/devtools/browser";
+
+
+    let watchdog = new Promise((resolve, reject) => {
+      setTimeout(() => {
+        console.log(`[${this.botName}]:watchdog: Browser reconnection timed out after 5sec, launchNewBrowser: ${this.launchNewBrowser}`);
+        reject(new Error(`[${this.botName}]:watchdog: Browser reconnection timed out after 5sec, launchNewBrowser: ${this.launchNewBrowser}`));
+      }, 5000);
+    });
+
+    const connector = async () => {
       if (!this.launchNewBrowser)
         browser = await connect({
           browserURL: this.browserURL + "/" + this.profileName,
@@ -141,7 +151,10 @@ class BrowserBot {
         browser = await launch({
           defaultViewport: null,
         });
-      this.browser = browser;
+    }
+    await Promise.race([connector(), watchdog]);
+
+    this.browser = browser;
     return browser
   }
 
@@ -160,7 +173,7 @@ class BrowserBot {
           console.log(
             this.botName,
             "Browser disconnected. Trying to reconnect..." +
-              that.disconnectCount
+            that.disconnectCount
           );
           await that.init();
           if (that.defaultUrl && that.browser && that.autoLaunchDefaultUrl) {
@@ -224,7 +237,7 @@ class BrowserBot {
           this.log("Mouse visalization connected");
         });
       }
-    } catch (e) {}
+    } catch (e) { }
 
     await page.setRequestInterception(true);
     let that = this;
@@ -396,7 +409,7 @@ class BrowserBot {
     } = curRule;
 
     if (!onActionDone) {
-      onActionDone = () => {};
+      onActionDone = () => { };
     }
     let removeRule = () => {
       if (this.rules && typeof this.rules == "object") {
@@ -623,7 +636,7 @@ async function closeTabsExceptCurrent(browser, currentPage) {
     if (page !== currentPage) {
       try {
         await page.close();
-      } catch (E) {}
+      } catch (E) { }
     }
   }
 }

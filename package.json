@@ -5,7 +5,8 @@
   "description": "A rule based reactive browser automation tool.",
   "main": "index.js",
   "scripts": {
-    "test": "node test.js"
+    "test": "node test.js",
+    "release": "git add -A && git commit -m \"Update new version\" && npm version patch && git add -A && git commit -m \"Release new version\" && git push && npm publish"
   },
   "repository": {
     "type": "git",
